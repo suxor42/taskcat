@@ -335,7 +335,7 @@ class Config:
 
     @staticmethod
     def _get_bucket_region_for_partition(partition):
-        region = "us-east-1"
+        region = "eu-west-1"
         if partition == "aws-us-gov":
             region = "us-gov-east-1"
         elif partition == "aws-cn":

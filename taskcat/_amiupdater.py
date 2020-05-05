@@ -380,7 +380,7 @@ class AMIUpdater:
                 region_object = RegionObj(
                     name=legacy_optin_region,
                     account_id=boto3_cache.account_id(region_profile),
-                    partition=boto3_cache.partition(region_profile),
+                    partition=boto3_cache.partition(legacy_optin_region),
                     profile=region_profile,
                     _boto3_cache=boto3_cache,
                     taskcat_id=taskcat_id,
@@ -394,7 +394,7 @@ class AMIUpdater:
                 region_object = RegionObj(
                     name=auth_region,
                     account_id=boto3_cache.account_id(auth_profile),
-                    partition=boto3_cache.partition(auth_profile),
+                    partition=boto3_cache.partition(auth_region),
                     profile=auth_profile,
                     _boto3_cache=boto3_cache,
                     taskcat_id=taskcat_id,

@@ -32,19 +32,19 @@ class Boto3Cache:
         self._lock_cache_update = False
 
     def session(self, profile: str = "default", region: str = None) -> boto3.Session:
-        region = self._get_region(region, profile)
+        region = "NA"  # self._get_region(region, profile)
         try:
             session = self._cache_lookup(
                 self._session_cache,
                 [profile, region],
                 self._boto3.Session,
                 [],
-                {"region_name": region, "profile_name": profile},
+                {"profile_name": profile},
             )
         except ProfileNotFound:
             if profile != "default":
                 raise
-            session = self._boto3.Session(region_name=region)
+            session = self._boto3.Session(profile_name=profile)
             self._cache_set(self._session_cache, [profile, region], session)
         return session
 
@@ -52,7 +52,7 @@ class Boto3Cache:
         self, service: str, profile: str = "default", region: str = None
     ) -> boto3.client:
         region = self._get_region(region, profile)
-        session = self.session(profile, region)
+        session = self.session(profile)
         kwargs = {"config": BotoConfig(retries={"max_attempts": 20})}
         if service in REGIONAL_ENDPOINT_SERVICES:
             kwargs.update({"endpoint_url": self._get_endpoint_url(service, region)})
@@ -60,7 +60,7 @@ class Boto3Cache:
             self._client_cache,
             [profile, region, service],
             session.client,
-            [service],
+            [service, region],
             kwargs,
         )
 
@@ -76,10 +76,11 @@ class Boto3Cache:
             [service],
         )
 
-    def partition(self, profile: str = "default") -> str:
-        return self._cache_lookup(
-            self._account_info, [profile], self._get_account_info, [profile]
-        )["partition"]
+    def partition(self, region: str) -> str:
+        return {
+            "cn-north-1": "aws-cn",
+            "us-gov-west-1": "aws-us-gov",
+        }.get(region, "aws")
 
     def account_id(self, profile: str = "default") -> str:
         return self._cache_lookup(
@@ -87,8 +88,8 @@ class Boto3Cache:
         )["account_id"]
 
     def _get_account_info(self, profile):
-        partition, region = self._get_partition(profile)
-        session = self.session(profile, region)
+        session = self.session(profile)
+        region = session.region_name
         sts_client = session.client("sts", region_name=region)
         try:
             account_id = sts_client.get_caller_identity()["Account"]
@@ -109,7 +110,7 @@ class Boto3Cache:
                 f"Not able to fetch account number from {region} using profile "
                 f"{profile}. {str(e)}"
             )
-        return {"partition": partition, "account_id": account_id}
+        return {"account_id": account_id}
 
     def _make_parent_keys(self, cache: dict, keys: list):
         if keys:
@@ -166,7 +167,7 @@ class Boto3Cache:
 
     def _get_partition(self, profile):
         partition_regions = [
-            ("aws", "us-east-1"),
+            ("aws", "eu-west-1"),
             ("aws-cn", "cn-north-1"),
             ("aws-us-gov", "us-gov-west-1"),
         ]
@@ -175,7 +176,7 @@ class Boto3Cache:
                 self.session(profile, region).client(
                     "sts", region_name=region
                 ).get_caller_identity()
-                return (partition, region)
+                return partition, region
             except ClientError as e:
                 if "InvalidClientTokenId" in str(e):
                     continue
@@ -184,7 +185,9 @@ class Boto3Cache:
 
     def get_default_region(self, profile_name="default") -> str:
         try:
-            region = self._boto3.session.Session(profile_name=profile_name).region_name
+            session = self._boto3.session.Session(profile_name=profile_name)
+            region = session.region_name
+            self._cache_set(self._session_cache, ["NA", region], session)
         except ProfileNotFound:
             if profile_name != "default":
                 raise
