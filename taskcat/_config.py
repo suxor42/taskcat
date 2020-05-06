@@ -230,7 +230,7 @@ class Config:
                 profile = (
                     test.auth.get(region, test.auth.get("default", "default"))
                     if test.auth
-                    else "default"
+                    else self.config.project.auth.get(region, self.config.project.auth.get("default", "default"))
                 )
                 region_objects[test_name][region] = RegionObj(
                     name=region,

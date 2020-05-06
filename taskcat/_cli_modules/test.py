@@ -260,7 +260,7 @@ def _build_args(enable_sig_v2, regions, default_profile):
             args["project"] = {}
         args["project"]["regions"] = regions.split(",")
     if default_profile:
-        _auth_dict = {"default": default_profile}
+        _auth_dict = {}  # Do not override auth setting from file
         if not args.get("project"):
             args["project"] = {"auth": _auth_dict}
         else:

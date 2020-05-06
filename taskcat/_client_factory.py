@@ -9,6 +9,7 @@ from taskcat.exceptions import TaskCatException
 LOG = logging.getLogger(__name__)
 
 REGIONAL_ENDPOINT_SERVICES = ["sts"]
+STS_SERVICE_NAME = 'sts'
 
 
 class Boto3Cache:
@@ -37,7 +38,7 @@ class Boto3Cache:
             partition_region_map = {}
             for partition in partitions:
                 partition_region_map[partition] = self._boto3.Session().get_available_regions(
-                    service_name=REGIONAL_ENDPOINT_SERVICES[0], partition_name=partition)
+                    service_name=STS_SERVICE_NAME, partition_name=partition)
             self._region_partition_map = {}
             for partition, regions in partition_region_map.items():
                 for single_region in regions:
